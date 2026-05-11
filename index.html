@@ -94,18 +94,19 @@
     }
 
     const expiresIn = parseInt(params.get('expires_in') || '3600');
-    const expiry    = Date.now() + (expiresIn * 1000);
 
-    try {
-      localStorage.setItem('ms_access_token', accessToken);
-      localStorage.setItem('ms_token_expiry',  String(expiry));
-    } catch(e) {
-      setStatus('error', '&#x2717; Could not save token: ' + e.message);
-      return;
+    // Pass token back to the CRM window via postMessage — works across origins
+    if (window.opener && !window.opener.closed) {
+      window.opener.postMessage({
+        type:      'MS_AUTH_TOKEN',
+        token:     accessToken,
+        expiresIn: expiresIn,
+      }, '*');
+      setStatus('success', '&#x2713; Signed in! This window will close automatically.');
+      setTimeout(() => { try { window.close(); } catch(e) {} }, 1500);
+    } else {
+      setStatus('error', '&#x2717; Could not reach the CRM window. Please close this tab and try signing in again.');
     }
-
-    setStatus('success', '&#x2713; Signed in! You can close this tab and return to the CRM.');
-    setTimeout(() => { try { window.close(); } catch(e) {} }, 2000);
   }
 
   handleRedirect();
